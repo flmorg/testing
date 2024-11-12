@@ -7,7 +7,6 @@ public class Worker : BackgroundService
     public Worker(ILogger<Worker> logger)
     {
         _logger = logger;
-        
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
