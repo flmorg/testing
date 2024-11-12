@@ -1,0 +1,9 @@
+on:
+  push:
+    paths:
+      - 'code/**'
+
+jobs:
+  build:
+    uses: flmorg/testing/.github/workflows/build.yml@main
+    secrets: inherit
