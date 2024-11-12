@@ -1,12 +1,12 @@
+name: Pipeline
+
 on:
   push:
-    branches:
-      - main
-    paths:
-      - 'code/**'
-  pull_request:
-    paths:
-      - 'code/**'
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+  # pull_request:
+  #   paths:
+  #     - 'code/**'
 
 jobs:
   build:
