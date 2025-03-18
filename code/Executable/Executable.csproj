@@ -1,10 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk.Worker">
 
     <PropertyGroup>
+        <AssemblyName>testing</AssemblyName>
         <TargetFramework>net9.0</TargetFramework>
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
         <UserSecretsId>dotnet-Executable-0879fc7d-c23a-4eb4-9e1c-bf51bebcc8dc</UserSecretsId>
+        <Version Condition="'$(Version)' == ''">0.0.1</Version>
     </PropertyGroup>
 
     <ItemGroup>
