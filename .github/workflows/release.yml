@@ -1,0 +1,11 @@
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+jobs:
+  release:
+    uses: flmorg/universal-workflows-testing/.github/workflows/dotnet.release.yml@main
+    with:
+      githubContext: ${{ toJSON(github) }}
+    secrets: inherit
