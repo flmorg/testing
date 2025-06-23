@@ -53,11 +53,11 @@ jobs:
           githubTags=""
 
           if [ -n "$latestDockerTag" ]; then
-            githubTags="$githubTags,ghcr.io/cleanuparr:$latestDockerTag"
+            githubTags="$githubTags,ghcr.io/testing:$latestDockerTag"
           fi
 
           if [ -n "$versionDockerTag" ]; then
-            githubTags="$githubTags,ghcr.io/cleanuparr:$versionDockerTag"
+            githubTags="$githubTags,ghcr.io/testing:$versionDockerTag"
           fi
 
           # set env vars
