@@ -26,12 +26,6 @@ public static class BasePathValidator
         // Trim whitespace
         basePath = basePath.Trim();
 
-        // Check for just root path
-        if (basePath == "/")
-        {
-            return ValidationResult.Failure("BASE_PATH cannot be just '/' (conflicts with root)");
-        }
-
         // Check length
         if (basePath.Length > MaxLength)
         {
