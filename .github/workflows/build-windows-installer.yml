@@ -118,15 +118,14 @@ jobs:
           $innoPath = "C:\Program Files (x86)\Inno Setup 6"
           echo "$innoPath" >> $env:GITHUB_PATH
 
-      - name: Copy LICENSE file
+      - name: Verify LICENSE file exists
         shell: pwsh
         run: |
-          if (Test-Path "LICENSE") {
-            Copy-Item "LICENSE" -Destination "." -Force
-          } else {
-            # Create a basic LICENSE file if none exists
-            "MIT License" | Out-File -FilePath "LICENSE" -Encoding UTF8
+          if (-not (Test-Path "LICENSE")) {
+            Write-Error "LICENSE file not found in repository root"
+            exit 1
           }
+          Write-Host "LICENSE file found successfully"
 
       - name: Build Windows installer
         shell: pwsh
