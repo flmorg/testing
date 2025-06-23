@@ -89,30 +89,44 @@ jobs:
       - name: Build macOS Intel executable
         run: |
           # Clean any existing output directory
-          rm -rf dist/Cleanuparr.app/Contents/MacOS
+          rm -rf dist
           mkdir -p dist/Cleanuparr.app/Contents/MacOS
           
+          # Set environment variables to disable code signing
+          export CODESIGN_ALLOCATE=/usr/bin/true
+          export DOTNET_BUNDLE_EXTRACT_BASE_DIR=/tmp/dotnet_bundle_extract
+          
+          # Build without single file first, then we'll handle it manually if needed
           dotnet publish code/backend/${{ env.executableName }}/${{ env.executableName }}.csproj \
             -c Release \
             --runtime osx-x64 \
             --self-contained \
             -o dist/Cleanuparr.app/Contents/MacOS \
-            /p:PublishSingleFile=true \
+            /p:PublishSingleFile=false \
             /p:Version=${{ env.appVersion }} \
             /p:DebugType=None \
             /p:DebugSymbols=false \
-            /p:EnableCompressionInSingleFile=false \
-            /p:IncludeNativeLibrariesForSelfExtract=true \
             /p:UseAppHost=true \
-            /p:EnableMacOSCodeSign=false
+            /p:EnableMacOSCodeSign=false \
+            /p:CodeSignOnCopy=false \
+            /p:_CodeSignDuringBuild=false
 
-      - name: Verify architecture
+      - name: Post-build setup
         run: |
+          # Make sure the executable is actually executable
+          chmod +x dist/Cleanuparr.app/Contents/MacOS/Cleanuparr
+          
+          # Remove any .pdb files that might have been created
+          find dist/Cleanuparr.app/Contents/MacOS -name "*.pdb" -delete
+          
           echo "Checking architecture of built binary:"
           file dist/Cleanuparr.app/Contents/MacOS/Cleanuparr
           if command -v lipo >/dev/null 2>&1; then
             lipo -info dist/Cleanuparr.app/Contents/MacOS/Cleanuparr
           fi
+          
+          echo "Files in MacOS directory:"
+          ls -la dist/Cleanuparr.app/Contents/MacOS/
 
       - name: Create macOS app bundle structure
         run: |
