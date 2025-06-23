@@ -103,7 +103,8 @@ jobs:
             /p:DebugSymbols=false \
             /p:EnableCompressionInSingleFile=false \
             /p:IncludeNativeLibrariesForSelfExtract=true \
-            /p:UseAppHost=true
+            /p:UseAppHost=true \
+            /p:EnableMacOSCodeSign=false
 
       - name: Verify architecture
         run: |

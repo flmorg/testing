@@ -59,10 +59,10 @@ Filename: "{sys}\sc.exe"; Parameters: "description ""{#MyServiceName}"" ""Cleanu
 
 ; For updates - stop service if running, wait for complete shutdown, then restart
 Filename: "{sys}\sc.exe"; Parameters: "stop ""{#MyServiceName}"""; Flags: runhidden; Check: ServiceExists('{#MyServiceName}') and IsServiceRunning('{#MyServiceName}') and IsTaskSelected('installservice')
-Filename: "{sys}\sc.exe"; Parameters: "start ""{#MyServiceName}"""; Tasks: installservice; Flags: runhidden; Check: ServiceExists('{#MyServiceName}') and WasServiceExisting
+Filename: "{sys}\sc.exe"; Parameters: "start ""{#MyServiceName}"""; Tasks: installservice; Flags: runhidden; Check: ServiceExists('{#MyServiceName}') and ServiceExistedBefore
 
 ; For fresh installs - start the newly created service
-Filename: "{sys}\sc.exe"; Parameters: "start ""{#MyServiceName}"""; Tasks: installservice; Flags: runhidden; Check: not WasServiceExisting
+Filename: "{sys}\sc.exe"; Parameters: "start ""{#MyServiceName}"""; Tasks: installservice; Flags: runhidden; Check: not ServiceExistedBefore
 
 ; Open web interface (only if service is selected)
 Filename: "http://localhost:11011"; Description: "Open Cleanuparr Web Interface"; Flags: postinstall shellexec nowait; Check: IsTaskSelected('installservice')
@@ -77,7 +77,7 @@ Filename: "{sys}\sc.exe"; Parameters: "delete ""{#MyServiceName}"""; Flags: runh
 
 [Code]
 var
-  WasServiceExisting: Boolean;
+  ServiceExistedBefore: Boolean;
 
 procedure CreateConfigDirs;
 begin
@@ -166,10 +166,10 @@ var
   ResultCode: Integer;
 begin
   // Remember if service existed before installation
-  WasServiceExisting := ServiceExists('{#MyServiceName}');
+  ServiceExistedBefore := ServiceExists('{#MyServiceName}');
   
   // Only stop service if it exists and is running
-  if WasServiceExisting and IsServiceRunning('{#MyServiceName}') then
+  if ServiceExistedBefore and IsServiceRunning('{#MyServiceName}') then
   begin
     if MsgBox('Cleanuparr service is currently running and needs to be stopped for the installation. Continue?', 
               mbConfirmation, MB_YESNO) = IDYES then
