@@ -1,9 +1,13 @@
 import { Note } from '@site/src/components/Admonition';
 
-# Configuration file example (when not using Docker)
+# Configuration file (when not using Docker)
 
 <Note>
-    **This example contains all settings and should be modified to fit your needs.**
+    This example contains all settings and should be modified to fit your needs.
+</Note>
+
+<Note>
+    Click on an environment variable's name to go to its documentation.
 </Note>
 
 ```
@@ -20,6 +24,8 @@ import { Note } from '@site/src/components/Admonition';
       "Path": "/var/logs"
     }
   },
+  "SEARCH_ENABLED": true,
+  "SEARCH_DELAY": 30,
   "Triggers": {
     "QueueCleaner": "0 0/5 * * * ?",
     "ContentBlocker": "0 0/5 * * * ?",
@@ -40,6 +46,7 @@ import { Note } from '@site/src/components/Admonition';
     "STALLED_RESET_STRIKES_ON_PROGRESS": true,
     "STALLED_IGNORE_PRIVATE": false,
     "STALLED_DELETE_PRIVATE": false,
+    "DOWNLOADING_METADATA_MAX_STRIKES": 5,
     "SLOW_MAX_STRIKES": 5,
     "SLOW_RESET_STRIKES_ON_PROGRESS": true,
     "SLOW_IGNORE_PRIVATE": false,
@@ -69,7 +76,20 @@ import { Note } from '@site/src/components/Admonition';
         "MAX_RATIO": 1,
         "MIN_SEED_TIME": 0,
         "MAX_SEED_TIME": 240
+      },
+      {
+        "Name": "cleanuperr-unlinked",
+        "MAX_RATIO": 1,
+        "MIN_SEED_TIME": 0,
+        "MAX_SEED_TIME": 240
       }
+    ],
+    "UNLINKED_TARGET_CATEGORY": "cleanuperr-unlinked",
+    "DOWNLOADCLEANER__UNLINKED_USE_TAG": false,
+    "UNLINKED_IGNORED_ROOT_DIR": "/downloads",
+    "UNLINKED_CATEGORIES": [
+      "tv-sonarr",
+      "radarr"
     ],
     "IGNORED_DOWNLOADS_PATH": "/ignored.txt"
   },
@@ -93,6 +113,7 @@ import { Note } from '@site/src/components/Admonition';
   },
   "Sonarr": {
     "Enabled": true,
+    "IMPORT_FAILED_MAX_STRIKES=-1
     "SearchType": "Episode",
     "Block": {
       "Type": "blacklist",
@@ -111,6 +132,7 @@ import { Note } from '@site/src/components/Admonition';
   },
   "Radarr": {
     "Enabled": true,
+    "IMPORT_FAILED_MAX_STRIKES": -1,
     "Block": {
       "Type": "blacklist",
       "Path": "https://example.com/path/to/file.txt"
@@ -128,6 +150,7 @@ import { Note } from '@site/src/components/Admonition';
   },
   "Lidarr": {
     "Enabled": true,
+    "IMPORT_FAILED_MAX_STRIKES": -1,
     "Block": {
       "Type": "blacklist",
       "Path": "https://example.com/path/to/file.txt"
@@ -149,6 +172,7 @@ import { Note } from '@site/src/components/Admonition';
     "ON_SLOW_STRIKE": true,
     "ON_QUEUE_ITEM_DELETED": true,
     "ON_DOWNLOAD_CLEANED": true,
+    "ON_CATEGORY_CHANGED": true,
     "API_KEY": "notifiarr_secret",
     "CHANNEL_ID": "discord_channel_id"
   },
@@ -158,6 +182,7 @@ import { Note } from '@site/src/components/Admonition';
     "ON_SLOW_STRIKE": true,
     "ON_QUEUE_ITEM_DELETED": true,
     "ON_DOWNLOAD_CLEANED": true,
+    "ON_CATEGORY_CHANGED": true,
     "URL": "http://localhost:8000",
     "KEY": "myConfigKey"
   }

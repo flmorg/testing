@@ -11,9 +11,9 @@ const settings: EnvVarProps[] = [
     type: "positive integer number",
     defaultValue: "0",
     required: false,
-    examples: ["0", "3", "10"],
     notes: [
-      "If not set to 0, the minimum value is 3."
+      "`0` means to never remove stalled downloads.",
+      "If not set to 0, the minimum value is `3`."
     ]
   },
   {
@@ -48,6 +48,19 @@ const settings: EnvVarProps[] = [
     acceptedValues: ["true", "false"],
     important: [
       "Setting this to true means you don't care about seeding, ratio, H&R and potentially losing your private tracker account."
+    ]
+  },
+  {
+    name: "QUEUECLEANER__DOWNLOADING_METADATA_MAX_STRIKES",
+    description: [
+      "Number of strikes before removing a download stuck while downloading metadata.",
+    ],
+    type: "positive integer number",
+    defaultValue: "0",
+    required: false,
+    notes: [
+      "`0` means to never remove downloads stuck while downloading metadata.",
+      "If not set to `0`, the minimum value is `3`."
     ]
   }
 ];
