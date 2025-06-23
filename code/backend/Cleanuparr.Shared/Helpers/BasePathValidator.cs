@@ -26,6 +26,11 @@ public static class BasePathValidator
         // Trim whitespace
         basePath = basePath.Trim();
 
+        if (basePath == "/")
+        {
+            return ValidationResult.Success();
+        }
+
         // Check length
         if (basePath.Length > MaxLength)
         {
