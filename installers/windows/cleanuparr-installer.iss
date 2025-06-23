@@ -47,7 +47,6 @@ Source: "appsettings.json"; DestDir: "{app}"; Flags: ignoreversion; AfterInstall
 
 [Dirs]
 Name: "{app}\config"; Permissions: everyone-full
-Name: "{app}\logs"; Permissions: everyone-full
 
 [Icons]
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
@@ -85,7 +84,6 @@ procedure CreateConfigDirs;
 begin
   // Create necessary directories with proper permissions
   ForceDirectories(ExpandConstant('{app}\config'));
-  ForceDirectories(ExpandConstant('{app}\logs'));
 end;
 
 function ServiceExists(ServiceName: string): Boolean;
