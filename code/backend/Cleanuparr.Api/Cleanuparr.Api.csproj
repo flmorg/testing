@@ -6,6 +6,8 @@
         <TargetFramework>net9.0</TargetFramework>
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
+        <PublishReadyToRun>true</PublishReadyToRun>
+        <EnableMacOSCodeSign>false</EnableMacOSCodeSign>
     </PropertyGroup>
 
     <ItemGroup>

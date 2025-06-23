@@ -187,11 +187,6 @@ jobs:
           # Create config directory in user's Application Support
           mkdir -p "$HOME/Library/Application Support/Cleanuparr"
           
-          # Create sample configuration if it doesn't exist
-          if [ ! -f "$HOME/Library/Application Support/Cleanuparr/cleanuparr.json" ]; then
-              cp "/Applications/Cleanuparr.app/Contents/Resources/cleanuparr.json" "$HOME/Library/Application Support/Cleanuparr/"
-          fi
-          
           # Set permissions
           chmod -R 755 "$HOME/Library/Application Support/Cleanuparr"
           
