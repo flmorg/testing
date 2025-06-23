@@ -88,6 +88,10 @@ jobs:
 
       - name: Build macOS Intel executable
         run: |
+          # Clean any existing output directory
+          rm -rf dist/Cleanuparr.app/Contents/MacOS
+          mkdir -p dist/Cleanuparr.app/Contents/MacOS
+          
           dotnet publish code/backend/${{ env.executableName }}/${{ env.executableName }}.csproj \
             -c Release \
             --runtime osx-x64 \
@@ -96,7 +100,10 @@ jobs:
             /p:PublishSingleFile=true \
             /p:Version=${{ env.appVersion }} \
             /p:DebugType=None \
-            /p:DebugSymbols=false
+            /p:DebugSymbols=false \
+            /p:EnableCompressionInSingleFile=false \
+            /p:IncludeNativeLibrariesForSelfExtract=true \
+            /p:UseAppHost=true
 
       - name: Verify architecture
         run: |
@@ -167,15 +174,6 @@ jobs:
               <string>10.15</string>
           </dict>
           </plist>
-          EOF
-          
-          # Create sample configuration with simplified settings
-          mkdir -p dist/Cleanuparr.app/Contents/Resources/config
-          cat > dist/Cleanuparr.app/Contents/Resources/config/cleanuparr.json << EOF
-          {
-            "HTTP_PORTS": 11011,
-            "BASE_PATH": "/"
-          }
           EOF
 
       - name: Create PKG installer

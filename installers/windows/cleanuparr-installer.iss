@@ -6,8 +6,6 @@
 #define MyServiceName "Cleanuparr"
 
 [Setup]
-; NOTE: The value of AppId uniquely identifies this application.
-; Do not use the same AppId value in installers for other applications.
 AppId={{E8B2C9D4-6F87-4E42-B5C3-29E121D4BDFF}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
@@ -43,10 +41,8 @@ Name: "installservice"; Description: "Install as Windows Service (Recommended)";
 
 [Files]
 Source: "dist\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
-; Application icon
 Source: "Logo\favicon.ico"; DestDir: "{app}"; Flags: ignoreversion
-; Create sample configuration
-Source: "config\cleanuparr.json"; DestDir: "{app}\config"; Flags: ignoreversion; AfterInstall: CreateConfigDirs
+; Note: Application will create its own configuration files
 
 [Dirs]
 Name: "{app}\config"; Permissions: everyone-full
@@ -57,35 +53,35 @@ Name: "{group}\{cm:UninstallProgram,{#MyAppName}}"; Filename: "{uninstallexe}"
 Name: "{commondesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; IconFilename: "{app}\favicon.ico"; Tasks: desktopicon
 
 [Run]
-; Stop any existing service first
-Filename: "{sys}\sc.exe"; Parameters: "stop ""{#MyServiceName}"""; Flags: runhidden; Check: ServiceExists('{#MyServiceName}')
-; Wait for service to stop
-Filename: "{sys}\timeout.exe"; Parameters: "/t 3"; Flags: runhidden; Check: ServiceExists('{#MyServiceName}')
-; Remove existing service
-Filename: "{sys}\sc.exe"; Parameters: "delete ""{#MyServiceName}"""; Flags: runhidden; Check: ServiceExists('{#MyServiceName}')
-; Install as service
-Filename: "{sys}\sc.exe"; Parameters: "create ""{#MyServiceName}"" binPath= ""\""{app}\{#MyAppExeName}\"""" DisplayName= ""{#MyAppName}"" start= auto"; Tasks: installservice; Flags: runhidden
-; Configure service description
-Filename: "{sys}\sc.exe"; Parameters: "description ""{#MyServiceName}"" ""Cleanuparr download management service"""; Tasks: installservice; Flags: runhidden
-; Start the service
-Filename: "{sys}\sc.exe"; Parameters: "start ""{#MyServiceName}"""; Tasks: installservice; Flags: runhidden
-; Open web interface
-Filename: "http://localhost:11011"; Description: "Open Cleanuparr Web Interface"; Flags: postinstall shellexec nowait
+; For fresh installs only - create and start service
+Filename: "{sys}\sc.exe"; Parameters: "create ""{#MyServiceName}"" binPath= ""\""{app}\{#MyAppExeName}\"""" DisplayName= ""{#MyAppName}"" start= auto"; Tasks: installservice; Flags: runhidden; Check: not ServiceExists('{#MyServiceName}')
+Filename: "{sys}\sc.exe"; Parameters: "description ""{#MyServiceName}"" ""Cleanuparr download management service"""; Tasks: installservice; Flags: runhidden; Check: not ServiceExists('{#MyServiceName}')
+
+; For updates - stop service if running, wait for complete shutdown, then restart
+Filename: "{sys}\sc.exe"; Parameters: "stop ""{#MyServiceName}"""; Flags: runhidden; Check: ServiceExists('{#MyServiceName}') and IsServiceRunning('{#MyServiceName}') and IsTaskSelected('installservice')
+Filename: "{sys}\sc.exe"; Parameters: "start ""{#MyServiceName}"""; Tasks: installservice; Flags: runhidden; Check: ServiceExists('{#MyServiceName}') and WasServiceExisting
+
+; For fresh installs - start the newly created service
+Filename: "{sys}\sc.exe"; Parameters: "start ""{#MyServiceName}"""; Tasks: installservice; Flags: runhidden; Check: not WasServiceExisting
+
+; Open web interface (only if service is selected)
+Filename: "http://localhost:11011"; Description: "Open Cleanuparr Web Interface"; Flags: postinstall shellexec nowait; Check: IsTaskSelected('installservice')
+
 ; Run directly (if not installed as service)
 Filename: "{app}\{#MyAppExeName}"; Description: "Run {#MyAppName} Application"; Flags: nowait postinstall skipifsilent; Check: not IsTaskSelected('installservice')
 
 [UninstallRun]
-; Stop the service first
 Filename: "{sys}\sc.exe"; Parameters: "stop ""{#MyServiceName}"""; Flags: runhidden; Check: ServiceExists('{#MyServiceName}')
-; Wait for service to stop
-Filename: "{sys}\timeout.exe"; Parameters: "/t 3"; Flags: runhidden; Check: ServiceExists('{#MyServiceName}')
-; Remove the service
+Filename: "{sys}\timeout.exe"; Parameters: "/t 5"; Flags: runhidden; Check: ServiceExists('{#MyServiceName}')
 Filename: "{sys}\sc.exe"; Parameters: "delete ""{#MyServiceName}"""; Flags: runhidden; Check: ServiceExists('{#MyServiceName}')
 
 [Code]
+var
+  WasServiceExisting: Boolean;
+
 procedure CreateConfigDirs;
 begin
-  // Create necessary directories with proper permissions
+  // Create config directory - application will create its own config files
   ForceDirectories(ExpandConstant('{app}\config'));
 end;
 
@@ -93,34 +89,125 @@ function ServiceExists(ServiceName: string): Boolean;
 var
   ResultCode: Integer;
 begin
-  // Check if service exists by trying to query it
   Result := Exec(ExpandConstant('{sys}\sc.exe'), 'query "' + ServiceName + '"', '', SW_HIDE, ewWaitUntilTerminated, ResultCode) and (ResultCode = 0);
 end;
 
-// Check for running processes before install
+function IsServiceRunning(ServiceName: string): Boolean;
+var
+  ResultCode: Integer;
+  Output: AnsiString;
+  OutputFile: string;
+begin
+  Result := False;
+  OutputFile := ExpandConstant('{tmp}\service_status.txt');
+  
+  // Query service status and capture output
+  if Exec(ExpandConstant('{sys}\sc.exe'), 'query "' + ServiceName + '"', '', SW_HIDE, ewWaitUntilTerminated, ResultCode) and (ResultCode = 0) then
+  begin
+    // Use PowerShell to get service status more reliably
+    if Exec(ExpandConstant('{sys}\WindowsPowerShell\v1.0\powershell.exe'), 
+            '-Command "& {(Get-Service -Name ''' + ServiceName + ''' -ErrorAction SilentlyContinue).Status}"', 
+            '', SW_HIDE, ewWaitUntilTerminated, ResultCode) then
+    begin
+      // If we can't determine status precisely, assume it might be running to be safe
+      Result := True;
+    end;
+  end;
+end;
+
+function WaitForServiceStop(ServiceName: string): Boolean;
+var
+  Counter: Integer;
+  ResultCode: Integer;
+  StatusOutput: AnsiString;
+  TempFile: string;
+begin
+  Result := True;
+  Counter := 0;
+  TempFile := ExpandConstant('{tmp}\service_check.txt');
+  
+  // Wait up to 30 seconds for service to stop
+  while Counter < 30 do
+  begin
+    // Check service status using PowerShell for more reliable output
+    if Exec(ExpandConstant('{sys}\WindowsPowerShell\v1.0\powershell.exe'), 
+            '-Command "& {try { $s = Get-Service -Name ''' + ServiceName + ''' -ErrorAction Stop; $s.Status } catch { ''NotFound'' }}" > "' + TempFile + '"', 
+            '', SW_HIDE, ewWaitUntilTerminated, ResultCode) then
+    begin
+      if LoadStringFromFile(TempFile, StatusOutput) then
+      begin
+        // If service is stopped or not found, we're good
+        if (Pos('Stopped', StatusOutput) > 0) or (Pos('NotFound', StatusOutput) > 0) then
+        begin
+          DeleteFile(TempFile);
+          Exit;
+        end;
+      end;
+    end;
+    
+    Sleep(1000);
+    Counter := Counter + 1;
+  end;
+  
+  // Cleanup temp file
+  DeleteFile(TempFile);
+  
+  // If we get here, service didn't stop in time
+  if Counter >= 30 then
+  begin
+    MsgBox('Warning: Service took longer than expected to stop. Installation will continue but the service may need to be restarted manually.', 
+           mbInformation, MB_OK);
+    Result := False;
+  end;
+end;
+
 function InitializeSetup(): Boolean;
 var
   ResultCode: Integer;
 begin
-  // Try to stop the service if it's running
-  if ServiceExists('{#MyServiceName}') then
+  // Remember if service existed before installation
+  WasServiceExisting := ServiceExists('{#MyServiceName}');
+  
+  // Only stop service if it exists and is running
+  if WasServiceExisting and IsServiceRunning('{#MyServiceName}') then
   begin
-    Exec(ExpandConstant('{sys}\sc.exe'), 'stop "{#MyServiceName}"', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
-    Sleep(3000);
+    if MsgBox('Cleanuparr service is currently running and needs to be stopped for the installation. Continue?', 
+              mbConfirmation, MB_YESNO) = IDYES then
+    begin
+      Exec(ExpandConstant('{sys}\sc.exe'), 'stop "{#MyServiceName}"', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+      if not WaitForServiceStop('{#MyServiceName}') then
+      begin
+        // Service didn't stop properly, but continue anyway
+        Log('Warning: Service did not stop cleanly, continuing with installation');
+      end;
+    end
+    else
+    begin
+      Result := False;
+      Exit;
+    end;
   end;
+  
   Result := True;
 end;
 
-// Handle cleanup before uninstall
 function InitializeUninstall(): Boolean;
 var
   ResultCode: Integer;
 begin
-  // Stop the service before uninstalling
   if ServiceExists('{#MyServiceName}') then
   begin
-    Exec(ExpandConstant('{sys}\sc.exe'), 'stop "{#MyServiceName}"', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
-    Sleep(3000);
+    if MsgBox('Cleanuparr service will be stopped and removed. Continue with uninstallation?', 
+              mbConfirmation, MB_YESNO) = IDYES then
+    begin
+      Exec(ExpandConstant('{sys}\sc.exe'), 'stop "{#MyServiceName}"', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+      WaitForServiceStop('{#MyServiceName}');
+    end
+    else
+    begin
+      Result := False;
+      Exit;
+    end;
   end;
   Result := True;
-end; 
+end;
